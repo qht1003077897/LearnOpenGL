@@ -7,9 +7,7 @@
 #include <iostream>
 #include <QDateTime>
 #include <QDir>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <QDateTime>
 
 
 float Widget::value = 0.0f;
@@ -19,7 +17,8 @@ float Widget::translatevalue = -1.0f;
 Widget::Widget(QWidget *parent)
     : QOpenGLWidget(parent)
 {
-    this->resize(800,800);
+    setMouseTracking(true);
+    this->resize(800,600);
     timer.setInterval(16);
     connect(&timer,&QTimer::timeout,this,&Widget::timeOut);
     timer.start();
@@ -189,19 +188,30 @@ void Widget::initializeGL()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(6 * sizeof(float)));
-//    glEnableVertexAttribArray(2);
+    //    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(6 * sizeof(float)));
+    //    glEnableVertexAttribArray(2);
+
+    // pass projection matrix to shader (as projection matrix rarely changes there's no need to do this per frame)
+    glm::mat4 projection    = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(45.0f), this->width()/(float)this->height(), 0.1f, 100.0f);
+    int proLoc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(proLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+    glm::mat4 view          = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -5.0f));
+    int viewLoc = glGetUniformLocation(shaderProgram, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(view));
 
     glBindBuffer(GL_ARRAY_BUFFER,0);//取消VAO和VBO绑定
     glBindVertexArray(0);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
-
-
-
 void Widget::paintGL()
 {
+    int64_t currentFrame = QDateTime::currentMSecsSinceEpoch();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
     //定义10个世界坐标
     static glm::vec3 cubePositions[] = {
       glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -221,61 +231,29 @@ void Widget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //绘制
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     glUseProgram(shaderProgram);
 
     // 更新uniform颜色或者mix纹理混合
     int vertexColorLocation = glGetUniformLocation(shaderProgram, "mixvalue");
     glUniform1f(vertexColorLocation, value);
 
-    //glm::mat4 trans = glm::mat4(1.0f);//创建单位矩阵;
-    //trans = glm::translate(trans, glm::vec3(translatevalue, translatevalue, 0.0f));
-    //trans = glm::rotate(trans, rotatevalue, glm::vec3(1.0, 0.0, 0.0));
-    //trans = glm::scale(trans, glm::vec3(scalevalue,scalevalue, scalevalue));
-    // 更新uniform 变化矩阵
-    //unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-    //glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
-    // make sure to initialize matrix to identity matrix first
-    glm::mat4 view          = glm::mat4(1.0f);
-    glm::mat4 projection    = glm::mat4(1.0f);
-    //model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.0f, 0.0f));
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -4.0f));
-    projection = glm::perspective(glm::radians(45.0f), this->width()/(float)this->height(), 0.1f, 100.0f);
-
-    //int modelLoc = glGetUniformLocation(shaderProgram, "model");
-    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(view));
-
-    //利用观察矩阵也可以实现在世界坐标中平移出多个物体（和下面的for循环一样）
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//    glm::mat4 view2          = glm::mat4(1.0f);
-//    view2 = glm::translate(view2, glm::vec3(1.0f, 0.0f, -4.0f));
-//    int viewLoc2 = glGetUniformLocation(shaderProgram, "view");
-//    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE,  glm::value_ptr(view2));
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//    glm::mat4 view3          = glm::mat4(1.0f);
-//    view3 = glm::translate(view3, glm::vec3(0.0f, 1.0f, -4.0f));
-//    int viewLoc3 = glGetUniformLocation(shaderProgram, "view");
-//    glUniformMatrix4fv(viewLoc3, 1, GL_FALSE,  glm::value_ptr(view3));
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    int proLoc = glGetUniformLocation(shaderProgram, "projection");
-    glUniformMatrix4fv(proLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glBindTexture(GL_TEXTURE_2D, texture1);
     glBindVertexArray(VAO);
+
+    //摄像机绕y轴旋转/场景绕y轴旋转
+    glm::mat4 viewlook         = glm::mat4(1.0f);
+    viewlook = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    int viewLoc = glGetUniformLocation(shaderProgram, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(viewlook));
+
     for(unsigned int i = 0; i < 10; i++)
     {
       glm::mat4 model         = glm::mat4(1.0f);
       int modelLoc = glGetUniformLocation(shaderProgram, "model");
       model = glm::translate(model, cubePositions[i]);
-      //float angle = 20.0f * i;
-      if(i % 3 == 0)
-      {
-        model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.3f,0.5f));
-      }
+      model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.3f,0.5f));
       glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
       glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -304,8 +282,74 @@ void Widget::timeOut()
     }
 
     //纹理叠加变化
-    update();
+
     //三角形变色
     //int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
     //glUniform4f(vertexColorLocation, 0.0f, value + 0.5f, 0.0f, 1.0f);
+}
+
+
+void Widget::keyPressEvent( QKeyEvent *k )
+{
+    float cameraSpeed = 0.001f * deltaTime;
+     qDebug() << "cameraSpeed:" << cameraSpeed;
+    if(k->key() == Qt::Key_W)
+    {
+        qDebug("Key_W");
+        cameraPos += cameraSpeed * cameraFront;
+    }
+    else if(k->key() == Qt::Key_S)
+    {
+        qDebug("Key_S");
+        cameraPos -= cameraSpeed * cameraFront;
+    }
+    else if(k->key() == Qt::Key_A)
+    {
+        qDebug("Key_A");
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    else if(k->key() == Qt::Key_D)
+    {
+         qDebug("Key_D");
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+
+     update();
+}
+
+void Widget::mouseMoveEvent(QMouseEvent *e)
+{
+    int xpos = e->pos().x();
+    int ypos = e->pos().y();
+    if(firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
+        lastX = xpos;
+        lastY = ypos;
+
+        float sensitivity = 0.1;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        yaw   += xoffset;
+        pitch += yoffset;
+        qDebug() << "yaw:" << yaw;
+        qDebug() << "pitch:" << pitch;
+        if(pitch > 89.0f)
+            pitch = 89.0f;
+        if(pitch < -89.0f)
+            pitch = -89.0f;
+
+        glm::vec3 front        = glm::vec3(1.0f);
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(front);
+        update();
 }
