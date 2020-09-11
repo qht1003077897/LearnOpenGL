@@ -24,6 +24,9 @@ protected:
     void resizeGL(int w, int h)override;
 private:
     static float value;
+    static float scalevalue;
+    static float rotatevalue;
+    static float translatevalue;
     QTimer timer;
     GLuint VBO, VAO, EBO,shaderProgram,texture,texture1;
 public slots:
