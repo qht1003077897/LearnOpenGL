@@ -43,10 +43,13 @@ void Widget::initializeGL()
         "layout (location = 2) in vec2 aTexCoord;\n"
         "out vec3 ourColor;\n"
         "out vec2 TexCoord;\n"
-        "uniform mat4 transform;\n"
+        //"uniform mat4 transform;\n"
+        "uniform mat4 model;\n"
+        "uniform mat4 view;\n"
+        "uniform mat4 projection;\n"
         "void main()\n"
         "{\n"
-        "   gl_Position = transform * vec4(aPos.x,aPos.y,aPos.z, 1.0);\n"
+        "   gl_Position = projection * view * model * vec4(aPos.x,aPos.y,aPos.z, 1.0);\n"
             "ourColor = aColor;\n"
             "TexCoord=aTexCoord;"
         "}\0";
@@ -84,18 +87,63 @@ void Widget::initializeGL()
     glDeleteShader(fragmentShader);
     // 顶点位置
 
-    const float m_vertexs[]  = {
-        //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
-    };
+//    const float m_vertexs[]  = {
+//        //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
+//             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
+//             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
+//            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
+//            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
+//    };
 
-    const unsigned int indices[] = {  // note that we start from 0!
-        0, 1, 2, // first Triangle
-        0, 2, 3   // second Triangle
-    };
+    //正方体顶点
+    const float m_vertexs[]  = {
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+ };
+
+//    const unsigned int indices[] = {  // note that we start from 0!
+//        0, 1, 2, // first Triangle
+//        0, 2, 3   // second Triangle
+//    };
 
     glGenVertexArrays(1,&VAO);
     glBindVertexArray(VAO);
@@ -104,9 +152,9 @@ void Widget::initializeGL()
     glBindBuffer(GL_ARRAY_BUFFER,VBO);
     glBufferData(GL_ARRAY_BUFFER,sizeof(m_vertexs),m_vertexs,GL_STATIC_DRAW);
 
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+//    glGenBuffers(1, &EBO);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glGenTextures(1, &texture);
     glActiveTexture(GL_TEXTURE0);
@@ -137,42 +185,102 @@ void Widget::initializeGL()
     glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1); // 手动设置
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
+//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(6 * sizeof(float)));
+//    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER,0);//取消VAO和VBO绑定
     glBindVertexArray(0);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
+
+
+
 void Widget::paintGL()
 {
+    //定义10个世界坐标
+    static glm::vec3 cubePositions[] = {
+      glm::vec3( 0.0f,  0.0f,  0.0f),
+      glm::vec3( 2.0f,  5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3( 2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f,  3.0f, -7.5f),
+      glm::vec3( 1.3f, -2.0f, -2.5f),
+      glm::vec3( 1.5f,  2.0f, -2.5f),
+      glm::vec3( 1.5f,  0.2f, -1.5f),
+      glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+
     glClearColor(0.2f, 0.3f, 0.5f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     //绘制
     glUseProgram(shaderProgram);
 
-    // 更新uniform颜色
+    // 更新uniform颜色或者mix纹理混合
     int vertexColorLocation = glGetUniformLocation(shaderProgram, "mixvalue");
     glUniform1f(vertexColorLocation, value);
 
-    glm::mat4 trans = glm::mat4(1.0f);//创建单位矩阵;
-    trans = glm::translate(trans, glm::vec3(translatevalue, translatevalue, 0.0f));
-    trans = glm::rotate(trans, rotatevalue, glm::vec3(0.0, 0.0, 1.0));
-    trans = glm::scale(trans, glm::vec3(scalevalue,scalevalue, scalevalue));
+    //glm::mat4 trans = glm::mat4(1.0f);//创建单位矩阵;
+    //trans = glm::translate(trans, glm::vec3(translatevalue, translatevalue, 0.0f));
+    //trans = glm::rotate(trans, rotatevalue, glm::vec3(1.0, 0.0, 0.0));
+    //trans = glm::scale(trans, glm::vec3(scalevalue,scalevalue, scalevalue));
     // 更新uniform 变化矩阵
-    unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+    //unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+    //glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
+    // make sure to initialize matrix to identity matrix first
+    glm::mat4 view          = glm::mat4(1.0f);
+    glm::mat4 projection    = glm::mat4(1.0f);
+    //model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.0f, 0.0f));
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -4.0f));
+    projection = glm::perspective(glm::radians(45.0f), this->width()/(float)this->height(), 0.1f, 100.0f);
+
+    //int modelLoc = glGetUniformLocation(shaderProgram, "model");
+    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    int viewLoc = glGetUniformLocation(shaderProgram, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(view));
+
+    //利用观察矩阵也可以实现在世界坐标中平移出多个物体（和下面的for循环一样）
+//    glDrawArrays(GL_TRIANGLES, 0, 36);
+//    glm::mat4 view2          = glm::mat4(1.0f);
+//    view2 = glm::translate(view2, glm::vec3(1.0f, 0.0f, -4.0f));
+//    int viewLoc2 = glGetUniformLocation(shaderProgram, "view");
+//    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE,  glm::value_ptr(view2));
+//    glDrawArrays(GL_TRIANGLES, 0, 36);
+//    glm::mat4 view3          = glm::mat4(1.0f);
+//    view3 = glm::translate(view3, glm::vec3(0.0f, 1.0f, -4.0f));
+//    int viewLoc3 = glGetUniformLocation(shaderProgram, "view");
+//    glUniformMatrix4fv(viewLoc3, 1, GL_FALSE,  glm::value_ptr(view3));
+//    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    int proLoc = glGetUniformLocation(shaderProgram, "projection");
+    glUniformMatrix4fv(proLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     glBindTexture(GL_TEXTURE_2D, texture);
     glBindTexture(GL_TEXTURE_2D, texture1);
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for(unsigned int i = 0; i < 10; i++)
+    {
+      glm::mat4 model         = glm::mat4(1.0f);
+      int modelLoc = glGetUniformLocation(shaderProgram, "model");
+      model = glm::translate(model, cubePositions[i]);
+      //float angle = 20.0f * i;
+      if(i % 3 == 0)
+      {
+        model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.3f,0.5f));
+      }
+      glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
    // glBindVertexArray(0); // no need to unbind it every time
 }
 
