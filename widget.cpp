@@ -7,9 +7,6 @@
 #include <iostream>
 #include <QDateTime>
 #include <QDir>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 
 float Widget::value = 0.0f;
@@ -29,7 +26,6 @@ Widget::~Widget()
 {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
     glDeleteProgram(shaderProgram);
 }
 
@@ -43,7 +39,6 @@ void Widget::initializeGL()
         "layout (location = 2) in vec2 aTexCoord;\n"
         "out vec3 ourColor;\n"
         "out vec2 TexCoord;\n"
-        //"uniform mat4 transform;\n"
         "uniform mat4 model;\n"
         "uniform mat4 view;\n"
         "uniform mat4 projection;\n"
@@ -59,13 +54,10 @@ void Widget::initializeGL()
         "in vec2 TexCoord;\n"
         "//uniform sampler2D ourTexture;\n"
         "uniform sampler2D texture1;\n"
-        "uniform sampler2D texture2;\n"
         "uniform float mixvalue;\n"
         "void main()\n"
         "{\n"
-        "   //FragColor = vec4(ourColor,1.0);\n"//正常颜色
-        "   //FragColor = texture(ourTexture, TexCoord)*vec4(1.0,0.5,0.5,1.0);\n"//纹理叠加色彩
-        "   FragColor = mix(texture(texture1, TexCoord)*vec4(1.0,1.0,1.0,1.0), texture(texture2, TexCoord)*vec4(1.0,1.0,1.0,1.0), mixvalue);"
+        "   FragColor = texture(texture1, TexCoord);"
         "}\n\0";
 
     int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -85,15 +77,7 @@ void Widget::initializeGL()
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
-    // 顶点位置
 
-//    const float m_vertexs[]  = {
-//        //     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-//             0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 右上
-//             0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 右下
-//            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-//            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // 左上
-//    };
 
     //正方体顶点
     const float m_vertexs[]  = {
@@ -139,25 +123,18 @@ void Widget::initializeGL()
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
  };
+    float floorVertices[] = {
+        // positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
+         5.0f, -0.51f,  5.0f,  1.0f, 0.0f,
+        -5.0f, -0.51f,  5.0f,  0.0f, 0.0f,
+        -5.0f, -0.51f, -5.0f,  0.0f, 1.0f,
 
-//    const unsigned int indices[] = {  // note that we start from 0!
-//        0, 1, 2, // first Triangle
-//        0, 2, 3   // second Triangle
-//    };
-
-    glGenVertexArrays(1,&VAO);
-    glBindVertexArray(VAO);
-
-    glGenBuffers(1,&VBO);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(m_vertexs),m_vertexs,GL_STATIC_DRAW);
-
-//    glGenBuffers(1, &EBO);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+         5.0f, -0.51f,  5.0f,  1.0f, 0.0f,
+        -5.0f, -0.51f, -5.0f,  0.0f, 1.0f,
+         5.0f, -0.51f, -5.0f,  1.0f, 1.0f
+    };
 
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
@@ -167,10 +144,30 @@ void Widget::initializeGL()
     QString path1 = ":/new/prefix1/3.png";
     QImage images(path1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, images.width(), images.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, images.bits());
+    glUseProgram(shaderProgram);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0); // 手动设置
+    glGenerateMipmap(GL_TEXTURE_2D);
 
 
+    glGenVertexArrays(1,&VAO);
+    glBindVertexArray(VAO);
+
+    glGenBuffers(1,&VBO);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(m_vertexs),m_vertexs,GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ARRAY_BUFFER,0);//取消VAO和VBO绑定
+    glBindVertexArray(0);
+
+
+
+    //-------------------------------------------地板
     glGenTextures(1, &texture1);
-    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture1);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
@@ -179,109 +176,78 @@ void Widget::initializeGL()
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     QImage images2(":/new/prefix1/4.png");
     glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, images2.width(), images2.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, images2.bits());
-
     glUseProgram(shaderProgram);
     glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0); // 手动设置
-    glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1); // 手动设置
     glGenerateMipmap(GL_TEXTURE_2D);
 
+    glGenVertexArrays(1,&VAO2);
+    glBindVertexArray(VAO2);
+    glGenBuffers(1,&VBO2);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO2);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(floorVertices),floorVertices,GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
-//    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(6 * sizeof(float)));
-//    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER,0);//取消VAO和VBO绑定
+    glBindBuffer(GL_ARRAY_BUFFER,0);
     glBindVertexArray(0);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
+
 
 
 
 
 void Widget::paintGL()
 {
-    //定义10个世界坐标
-    static glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  0.0f,  0.0f),
-      glm::vec3( 2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3( 2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f,  3.0f, -7.5f),
-      glm::vec3( 1.3f, -2.0f, -2.5f),
-      glm::vec3( 1.5f,  2.0f, -2.5f),
-      glm::vec3( 1.5f,  0.2f, -1.5f),
-      glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
+    int64_t currentFrame = QDateTime::currentMSecsSinceEpoch();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
     glClearColor(0.2f, 0.3f, 0.5f, 1.0f);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     //绘制
     glUseProgram(shaderProgram);
 
-    // 更新uniform颜色或者mix纹理混合
-    int vertexColorLocation = glGetUniformLocation(shaderProgram, "mixvalue");
-    glUniform1f(vertexColorLocation, value);
 
-    //glm::mat4 trans = glm::mat4(1.0f);//创建单位矩阵;
-    //trans = glm::translate(trans, glm::vec3(translatevalue, translatevalue, 0.0f));
-    //trans = glm::rotate(trans, rotatevalue, glm::vec3(1.0, 0.0, 0.0));
-    //trans = glm::scale(trans, glm::vec3(scalevalue,scalevalue, scalevalue));
-    // 更新uniform 变化矩阵
-    //unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
-    //glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
-    // make sure to initialize matrix to identity matrix first
-    glm::mat4 view          = glm::mat4(1.0f);
-    glm::mat4 projection    = glm::mat4(1.0f);
-    //model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.0f, 0.0f));
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -4.0f));
-    projection = glm::perspective(glm::radians(45.0f), this->width()/(float)this->height(), 0.1f, 100.0f);
-
-    //int modelLoc = glGetUniformLocation(shaderProgram, "model");
-    //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     int viewLoc = glGetUniformLocation(shaderProgram, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(view));
 
-    //利用观察矩阵也可以实现在世界坐标中平移出多个物体（和下面的for循环一样）
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//    glm::mat4 view2          = glm::mat4(1.0f);
-//    view2 = glm::translate(view2, glm::vec3(1.0f, 0.0f, -4.0f));
-//    int viewLoc2 = glGetUniformLocation(shaderProgram, "view");
-//    glUniformMatrix4fv(viewLoc2, 1, GL_FALSE,  glm::value_ptr(view2));
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
-//    glm::mat4 view3          = glm::mat4(1.0f);
-//    view3 = glm::translate(view3, glm::vec3(0.0f, 1.0f, -4.0f));
-//    int viewLoc3 = glGetUniformLocation(shaderProgram, "view");
-//    glUniformMatrix4fv(viewLoc3, 1, GL_FALSE,  glm::value_ptr(view3));
-//    glDrawArrays(GL_TRIANGLES, 0, 36);
+    //摄像机绕y轴旋转/场景绕y轴旋转
+    glm::mat4 viewlook         = glm::mat4(1.0f);
+    viewlook = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    viewlook = glm::translate(viewlook, glm::vec3(0.0f, 0.0f, -4.0f));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE,  glm::value_ptr(viewlook));
 
+    glm::mat4 projection    = glm::mat4(1.0f);
+    glm::mat4 model = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(45.0f), this->width()/(float)this->height(), 0.1f, 100.0f);
     int proLoc = glGetUniformLocation(shaderProgram, "projection");
     glUniformMatrix4fv(proLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glBindVertexArray(VAO);
-    for(unsigned int i = 0; i < 10; i++)
-    {
-      glm::mat4 model         = glm::mat4(1.0f);
-      int modelLoc = glGetUniformLocation(shaderProgram, "model");
-      model = glm::translate(model, cubePositions[i]);
-      //float angle = 20.0f * i;
-      if(i % 3 == 0)
-      {
-        model = glm::rotate(model, rotatevalue, glm::vec3(1.0f, 0.3f,0.5f));
-      }
-      glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    int modelLoc = glGetUniformLocation(shaderProgram, "model");
 
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-   // glBindVertexArray(0); // no need to unbind it every time
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glBindVertexArray(VAO2);
+    model = glm::mat4(1.0f);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAO);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+
+
 }
 
 void Widget::resizeGL(int w, int h){
@@ -302,10 +268,71 @@ void Widget::timeOut()
         rotatevalue = 0.0f;
         scalevalue = 0.0f;
     }
-
-    //纹理叠加变化
     update();
-    //三角形变色
-    //int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-    //glUniform4f(vertexColorLocation, 0.0f, value + 0.5f, 0.0f, 1.0f);
+}
+
+void Widget::keyPressEvent( QKeyEvent *k )
+{
+    float cameraSpeed = 0.001f * deltaTime;
+     qDebug() << "cameraSpeed:" << cameraSpeed;
+    if(k->key() == Qt::Key_W)
+    {
+        qDebug("Key_W");
+        cameraPos += cameraSpeed * cameraFront;
+    }
+    else if(k->key() == Qt::Key_S)
+    {
+        qDebug("Key_S");
+        cameraPos -= cameraSpeed * cameraFront;
+    }
+    else if(k->key() == Qt::Key_D)
+    {
+        qDebug("Key_A");
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    else if(k->key() == Qt::Key_A)
+    {
+         qDebug("Key_D");
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+
+     update();
+}
+
+
+void Widget::mouseMoveEvent(QMouseEvent *e)
+{
+    int xpos = e->pos().x();
+    int ypos = e->pos().y();
+    if(firstMouse)
+        {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;
+        lastX = xpos;
+        lastY = ypos;
+
+        float sensitivity = 0.1;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        yaw   += xoffset;
+        pitch += yoffset;
+        qDebug() << "yaw:" << yaw;
+        qDebug() << "pitch:" << pitch;
+        if(pitch > 89.0f)
+            pitch = 89.0f;
+        if(pitch < -89.0f)
+            pitch = -89.0f;
+
+        glm::vec3 front        = glm::vec3(1.0f);
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(front);
+        update();
 }
