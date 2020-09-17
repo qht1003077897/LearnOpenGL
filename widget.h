@@ -10,6 +10,7 @@
 #include <QOpenGLShaderProgram>
 #include <QTimer>
 #include <qevent.h>
+#include <QKeyEvent>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -28,6 +29,7 @@ protected:
     void resizeGL(int w, int h)override;
     void keyPressEvent(QKeyEvent *k)override;
     void mouseMoveEvent(QMouseEvent *e)override;
+
 private:
     float pitch = 0.0f,yaw = -90.0f;
     bool firstMouse = true;
